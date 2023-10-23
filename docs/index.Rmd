@@ -282,7 +282,7 @@ It seems as if log differenced series is stationary.
 # Fit ARMIA models 
 
 fit2 <- forex %>% 
-	mutate(diff_forex = difference(forex)) %>%
+	mutate(diff_forex = difference(log(forex))) %>%
 	model(
 		arima100 = ARIMA(diff_forex ~ pdq(1,0,0)),
 		arima300 = ARIMA(diff_forex ~ pdq(3,0,0)),
