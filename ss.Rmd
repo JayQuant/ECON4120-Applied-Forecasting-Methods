@@ -1,0 +1,143 @@
+---
+title: "ss"
+output: html_document
+date: "2023-10-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Fitting an Autoregressive model to US quarterly GDP data
+
+
+```{r}
+# Load libraries
+library(haven)
+library(fpp3)
+library(zoo)
+library(patchwork)
+library(tidyquant) 
+```
+
+
+```{r}
+# Set parameters for graphical view
+par(mfrow=c(2,1))
+```
+
+```{r}
+# Load data
+US_QGDP <- read_dta("C:/Users/idkup/Desktop/Course studies/2022 TERM 2/ECON4120/US_QGDP.dta")
+head(US_QGDP)
+```
+
+```{r}
+# Check for NA
+sum(is.na(US_QGDP))
+```
+
+### Converting to tsibble object
+
+Since the original dataset was created for STATA, it is not fit for analysis in R.
+
+Thus, we refer Rob Hyndman's recommendation of using the fpp3 package's tsibble object. It allows us to manipulate time series with dplyr commands.
+
+```{r}
+## Convert to tsibble object 
+US_QGDP$gdp <- as.numeric(US_QGDP$gdp)
+US_QGDP$gdp <- format(round(US_QGDP$gdp,3), nsmall=3)
+
+
+# Create quarterly data sequence
+ti <- seq(as.Date("1947-01-01"), as.Date("2019-12-01"), by= "quarter")
+length(ti) == length(US_QGDP$gdp) 
+
+# Change to quarterly data
+ti <- as.yearqtr(ti, format="%Y-%m-%d")
+ti <- yearquarter(ti)
+US_QGDP$yq <- ti
+
+# Change character to numeric vector
+US_QGDP$gdp <- as.numeric(US_QGDP$gdp)
+
+# Swap column order, change to tsibble object
+US_QGDP <- select(US_QGDP, yq, gdp) %>%
+	as_tsibble(index = yq)
+
+autoplot(US_QGDP)
+```
+
+## Q1
+
+### i) detecting stationarity of series visually
+
+Obviously, from the gdp plot, we see a clear trend, so the series is not stationary.
+
+### ii) Take the Log difference
+
+```{r}
+plt.d.logUS_QGDP <- US_QGDP %>% transmute(
+	'd.loggdp' = difference(log(gdp))
+	) %>%
+	
+	ggplot(aes(x=yq, y= d.loggdp)) +
+	geom_line(col='steelblue') +
+	labs( y = "first difference of log gdp", title = "Growth rate of quarterly GDP")
+
+plt.d.logUS_QGDP
+```
+
+### iii) estimate AR(1) model for GDP growth rate
+
+```{r}
+
+#Save differenced log series
+d.logUS_QGDP <- US_QGDP %>% transmute(
+	'd.loggdp' = difference(log(gdp))
+  )
+	
+# Fit AR(1) model
+fit <- d.logUS_QGDP %>% drop_na() %>%
+	model(AR(d.loggdp ~ order(1), na.rm=T))
+
+report(fit)
+```
+
+
+```{r}
+
+#forecast 1 quarter ahead
+fit %>% forecast(h = 1)
+
+#Plot forecasted path and distribution along with original data
+forecast.1 <- fit %>% forecast() %>% autoplot(d.logUS_QGDP) + 
+	coord_x_date(xlim = c("2000-1-1" , "2021-1-1"))
+forecast.1
+```
+
+
+### iv) Estimate AR(2) model for GDP Growth rate
+
+```{r}
+#Fit AR(2) model
+fit2 <- d.logUS_QGDP %>% drop_na() %>%
+	model(AR(d.loggdp ~ order(2), na.rm=T)
+	)
+	
+report(fit2)
+
+#Forecast 1 quarter ahead
+fit2 %>% forecast(h = 1)
+
+#Plot forecasted path along original data
+forecast.2 <- fit2 %>% forecast() %>% autoplot(d.logUS_QGDP) +
+coord_x_date(xlim = c("2000-1-1" , "2021-1-1"))
+
+forecast.2
+
+```
+
+
+
+
