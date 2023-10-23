@@ -152,8 +152,8 @@ forecast.2
 
 ```{r}
 # read data after setting to appropriate wd
-# setwd("Path")
-vol = read_dta("vol.dta")
+# 
+vol = read_dta("c:/Users/idkup/OneDrive - The Chinese University of Hong Kong/Jay's coding/Data/ECON4120/vol.dta")
 
 sum(is.na(vol))
 
@@ -171,7 +171,7 @@ Judging from visual inspection, it seems volatility time series is stationary. H
 ```{r}
 fUnitRoots::unitrootTest(vol$vol)
 
-adfTest(vol$vol)
+fUnitRoots::adfTest(vol$vol)
 
 ```
 P-value is 0.01291, so we can reject null hypothesis (i.e., series has unit root, at 5% level)
@@ -254,10 +254,10 @@ fit %>% forecast(h=1) %>%
 ### i) Inspect forex data and determine model of friction
 
 ```{r}
-# Set wd and load data
-# setwd("Path")
+# load data
 
-forex <- read_dta("forex.dta")
+forex <- read_dta("c:/Users/idkup/OneDrive - The Chinese University of Hong Kong/Jay's coding/Data/ECON4120/forex.dta")
+
 forex <- as_tsibble(forex, index = tradetimes)
 
 autoplot(forex)
