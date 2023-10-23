@@ -1,5 +1,5 @@
 # Applied-Forecasting & Time-Series-Assignments
-This is a repository of codes submitted for assignments of ECON4903 - Applied Forecasting.
+This is a repository of codes submitted for assignments of ECON4120 - Applied Forecasting.
 
 The R codes are uploaded as they are.
 
