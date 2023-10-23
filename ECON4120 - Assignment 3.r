@@ -4,9 +4,6 @@ library(fpp3)
 library(fUnitRoots)
 library(tidyquant)
 
-##obtaining fitted values and residuals using augment()
-augment("model")
-
 ###Q1
 
 ##i)
@@ -24,8 +21,7 @@ vol %>%  gg_tsdisplay(vol, plot_type='partial')
 ##ii) perform unit-root tests
 
 fUnitRoots::unitrootTest(vol$vol)
-
-adfTest(vol$vol)
+fUnitRoots::unitrootTestadfTest(vol$vol)
 
 #p-value is 0.01291
 
@@ -111,11 +107,11 @@ forex <- as_tsibble(forex, index = tradetimes)
 forex %>% gg_tsdisplay(forex, plot_type = "partial")
 # Take difference of logarithmic exchange rates to find log change (return)
 forex %>% 
-	mutate(diff_forex = difference(forex)) %>%
+	mutate(diff_forex = difference(log(forex))) %>%
 	gg_tsdisplay(diff_forex, plot_type = "partial")
 	
 fit2 <- forex %>% 
-	mutate(diff_forex = difference(forex)) %>%
+	mutate(diff_forex = difference(log(forex))) %>%
 	model(
 		arima100 = ARIMA(diff_forex ~ pdq(1,0,0)),
 		arima303 = ARIMA(diff_forex ~ pdq(3,0,3)),
