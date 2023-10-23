@@ -1,5 +1,5 @@
 ---
-title: "ss"
+title: "Applied Forecasting Methods"
 output: html_document
 date: "2023-10-23"
 ---
@@ -8,7 +8,7 @@ date: "2023-10-23"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Fitting an Autoregressive model to US quarterly GDP data
+# Assignment 1 - Fitting an Autoregressive model to US quarterly GDP data
 
 ```{r}
 # Load libraries
@@ -133,3 +133,177 @@ coord_x_date(xlim = c("2000-1-1" , "2021-1-1"))
 forecast.2
 
 ```
+
+
+
+# Assignment 2 - Dealing with volatility time series and and conducting residual analysis
+
+```{r}
+# Load Libraries
+# library(haven)
+# library(fpp3)
+# library(fUnitRoots)
+# library(tidyquant)
+```
+
+## Q1
+
+### i) Make judgement on stationarity of vol time series
+
+```{r}
+# read data after setting to appropriate wd
+# setwd("Path")
+vol = read_dta("vol.dta")
+
+sum(is.na(vol))
+
+vol <- drop_na(vol)
+
+vol <- vol %>% as_tsibble(index=days) 
+
+vol %>%  gg_tsdisplay(vol, plot_type='partial')
+```
+
+Judging from visual inspection, it seems volatility time series is stationary. However, we conduct a unit-root test for statistical confirmation.
+
+### ii) perform adf test
+
+```{r}
+fUnitRoots::unitrootTest(vol$vol)
+
+adfTest(vol$vol)
+
+```
+P-value is 0.01291, so we can reject null hypothesis (i.e., series has unit root, at 5% level)
+
+### iii) fit ARMA models
+Judging from acf and pacf, we could try:
+- ARMA(2,0)
+- ARMA(0,2)
+- ARMA(0,1)
+- ARMA(2,2)
+- ARMA(1,1)
+
+```{r}
+fit <- vol %>%
+	model(arima200 = ARIMA(vol ~ pdq(2,0,0)),
+		arima002 = ARIMA(vol ~ pdq(0,0,2)),
+		arima202 = ARIMA(vol ~ pdq(2,0,2)),
+		arima101 = ARIMA(vol ~ pdq(1,0,1))
+	)
+
+#Generate residuals of all four models
+augment(fit) %>% select(-vol, -.fitted, -.resid) %>%
+	pivot_wider(names_from = .model, values_from = .innov)
+```
+
+```{r}
+# Residual Analysis using ljung-box test
+
+fit %>% select(arima002) %>% gg_tsresiduals()
+augment(fit) %>% filter(.model == 'arima002') %>% 
+	features(.innov, ljung_box)
+
+fit %>% select(arima200) %>% gg_tsresiduals()
+augment(fit) %>% filter(.model == 'arima200') %>% 
+	features(.innov, ljung_box)
+
+fit %>% select(arima202) %>% gg_tsresiduals()
+augment(fit) %>% filter(.model == 'arima202') %>% 
+	features(.innov, ljung_box)
+
+fit %>% select(arima101) %>% gg_tsresiduals()
+augment(fit) %>% filter(.model == 'arima101') %>% 
+	features(.innov, ljung_box)
+
+
+```
+
+**According to Residual Analysis, ARIMA(1,0,1), ARIMA(2,0,2), ARIMA(0,0,2) seem most likely, in descending order.**
+
+### iv) Generate ICs of models and choose based on ICs
+
+```{r}
+glance(fit)
+```
+
+
+**Based on ICs, ARIMA(1,0,1) seems the best model**.
+
+### v) Make one step forecasts and plot them on the graph, showing the volatility series
+
+```{r}
+#Show one step forecasts ARIMA(1,0,1) model
+fit %>% forecast(h=1) %>% 
+	filter(.model == 'arima101')
+
+# plot onestep forecast on vol time series
+fit %>% forecast(h = 1) %>% 
+	filter(.model == 'arima101') %>% 
+	autoplot(vol)
+
+# Zoom in on plot by letting start point equal to 200th day and ends at 254th day
+fit %>% forecast(h=1) %>% 
+	filter(.model == 'arima101') %>%
+	autoplot(vol) +
+	coord_x_date(xlim = c( 200 , 254))
+```
+
+## Q2
+
+### i) Inspect forex data and determine model of friction
+
+```{r}
+# Set wd and load data
+# setwd("Path")
+
+forex <- read_dta("forex.dta")
+forex <- as_tsibble(forex, index = tradetimes)
+
+autoplot(forex)
+```
+
+
+```{r}
+# ACF and PACF
+forex %>% gg_tsdisplay(forex, plot_type = "partial")
+```
+
+```{r}
+# Take difference of logarithmic exchange rates to find log change (return)
+forex %>% 
+	mutate(diff_forex = difference(log(forex))) %>%
+	gg_tsdisplay(diff_forex, plot_type = "partial")
+```
+
+It seems as if log differenced series is stationary.
+
+```{r}
+# Fit ARMIA models 
+
+fit2 <- forex %>% 
+	mutate(diff_forex = difference(forex)) %>%
+	model(
+		arima100 = ARIMA(diff_forex ~ pdq(1,0,0)),
+		arima300 = ARIMA(diff_forex ~ pdq(3,0,0)),
+		stepwise = ARIMA(diff_forex ~ 0),
+		search = ARIMA(diff_forex ~ 0, stepwise = FALSE)
+	)
+report(fit2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
