@@ -1,2 +1,8 @@
 # Applied-Forecasting & Time-Series-Assignments
-This is a repository of codes submitted for assignments of ECON4903 - Applied Forecasting and STAT4005 - Time Series
+This is a repository of codes submitted for assignments of ECON4903 - Applied Forecasting.
+
+The R codes are uploaded as they are.
+
+The **docs** folder contain rmd & html files required for uploading the R notebooks to Github page.
+
+For a more comprehensive view, visit github pages.
